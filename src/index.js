@@ -1,31 +1,39 @@
-const express=require('express')
-const cors=require('cors')
-const app=express()
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const dotenv = require('dotenv');
+const connection = require('./db/connection');
+const products = require('./products');
 
-const dotenv=require('dotenv')
-dotenv.config()
+dotenv.config();
+app.use(express.json());
 
-const PORT=process.env.PORT ||5000
-const mongoose=require('mongoose')
-//Db connection
-const connection=require('./db/connection')
-connection()
+// Enable CORS for all routes
+app.use(cors({
+    origin: 'http://localhost:3000', // Replace with your frontend URL
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-const products= require('./products')
-app.use(cors())
-app.use(express.json())
+// Router access
+const userRouter = require('./routes/userRoutes');
+app.use(userRouter);
 
+const PORT = process.env.PORT || 5000;
 
-// routes
-app.get('/',async(req,res)=>{
-    res.status(200).send("Welcome to the Online Shop")
-})
+// Db connection
+const mongoose = require('mongoose');
+connection();
 
-// products route
-app.get('/products',async(req,res)=>{
-    res.send(products)
-})
+// Routes
+app.get('/', (req, res) => {
+    res.status(200).send("Welcome to the Online Shop");
+});
 
-app.listen(PORT,()=>{
-    console.log("server started at PORT",PORT)
-})
+app.get('/products', (req, res) => {
+    res.send(products);
+});
+
+app.listen(PORT, () => {
+    console.log("Server started at PORT", PORT);
+});
