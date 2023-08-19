@@ -3,6 +3,7 @@ const Joi=require('joi')
 const express=require('express')
 const router=express.Router()
 const User=require('../models/userModel')
+const Order = require('../models/orderModel')
 
 // signup Route
 router.post('/users/signup',async(req,res)=>{
@@ -59,12 +60,20 @@ router.post('/users/login',async(req,res)=>{
 })
 
 //stripe
-const Stripe = require('stripe')
+// const Stripe = require('stripe')
 const stripekey=process.env.STRIPE_KEY
 
-const stripe=Stripe(stripekey)
+const stripe = require('stripe')(stripekey, {
+  timeout: 120000,
+});
 
 router.post('/create-checkout-session', async (req, res) => {
+  const customer=await stripe.customers.create({
+    metadata:{
+      userId:req.body.userId,
+      cart: JSON.stringify(req.body) 
+    }
+  })
 
   const line_items=req.body.cartItems.map((item)=>{
     return{
@@ -112,6 +121,7 @@ router.post('/create-checkout-session', async (req, res) => {
         }
       }
       ],
+      customer:customer.id,
       line_items,
       phone_number_collection: {
         enabled: true,
@@ -124,30 +134,71 @@ router.post('/create-checkout-session', async (req, res) => {
     res.send({url:session.url});
   });
 
+//Create Order
+const createOrder=async(customer,data)=>{
+  const Items=JSON.parse(customer.metadata.cart);
+  console.log("Items:",Items.cartItems)
+  const newOrder=new Order({
+    userId:customer.metadata.userId,
+    customerId:data.customer,
+    paymentIntentId:data.payment_intent,
+    products:Items.cartItems,
+    subtotal:data.amount_subtotal,
+    total:data.amount_total,
+    shipping:data.customer_details,
+    payment_status:data.payment_status
+  });
+  try{
+    const savedOrder=await newOrder.save()
+    console.log("Processed Order:",savedOrder)
+  }catch(e){
+    console.log(e)
+  }
+}
+
 
  //stripe webhooks
 
 // This is your Stripe CLI webhook secret for testing your endpoint locally.
-const endpointSecret = "whsec_aecb24351be35284c0096706ee22e7095f046410ae709b22cdfe9474f8746445";
+let endpointSecret;
 
-router.post('/webhook', express.raw({type: 'application/json'}), (request, response) => {
+// endpointSecret= "whsec_aecb24351be35284c0096706ee22e7095f046410ae709b22cdfe9474f8746445";
+
+router.post('/webhook', express.raw({ type: 'application/json' }), (request, response) => {
   const sig = request.headers['stripe-signature'];
+  let data;
+  let eventType;
 
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-    onslotchange.log("Verified")
-  } catch (err) {
-    console.log(`Webhook Error: ${err.message}`)
-    response.status(400).send(`Webhook Error: ${err.message}`);
-    return;
+  if (endpointSecret) {
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+      console.log("Webhook Verified");
+    } catch (err) {
+      console.log(`Webhook Error: ${err.message}`);
+      response.status(400).send(`Webhook Error: ${err.message}`);
+      return;
+    }
+    data = event.data.object;
+    eventType = event.type;
+  } else {
+    data = request.body.data.object;
+    eventType = request.body.type;
   }
 
   // Handle the event
- 
+  if (eventType === 'checkout.session.completed') {
+    stripe.customers.retrieve(data.customer)
+      .then(customer => {
+        console.log("Customer:", customer);
+        console.log("Data:", data);
+        createOrder(customer,data)
+      })
+      .catch(err => console.log(err.message));
+  }
+
   // Return a 200 response to acknowledge receipt of the event
-  response.send().end();
+  response.status(200).end();
 });
 
-module.exports=router
+module.exports = router;

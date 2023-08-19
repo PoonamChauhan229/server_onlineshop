@@ -5,18 +5,23 @@ const dotenv = require('dotenv');
 const connection = require('./db/connection');
 const products = require('./products');
 
+
+
 dotenv.config();
 app.use(express.json());
+
 
 // Enable CORS for all routes
 app.use(cors({
     origin: 'http://localhost:3000', // Replace with your frontend URL
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  }));
 
 // Router access
 const userRouter = require('./routes/userRoutes');
+const orderRouter=require('./routes/orderRoutes');
+app.use(orderRouter)
 app.use(userRouter);
 
 const PORT = process.env.PORT || 5000;
