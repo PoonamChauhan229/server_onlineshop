@@ -1,10 +1,6 @@
 const mongoose=require('mongoose')
 
 const orderSchema=new mongoose.Schema({
-    userId:{
-        type:String,
-        require:true
-    },
     customerId:{
         type:String,
     },
@@ -25,7 +21,12 @@ const orderSchema=new mongoose.Schema({
     total:{type:Number,require:true},
     shipping:{type:Object,require:true},
     delivery_status:{type:String,default:"pending"},
-    payment_status:{type:String,require:true}
+    payment_status:{type:String,require:true},
+    owner:{
+        type:mongoose.Schema.Types.ObjectId,
+        required:true,
+        ref:"User" //Model Name
+    }
 },
 {timestamps:true}
 )

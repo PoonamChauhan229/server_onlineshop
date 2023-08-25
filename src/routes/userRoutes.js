@@ -4,6 +4,7 @@ const express=require('express')
 const router=express.Router()
 const User=require('../models/userModel')
 const Order = require('../models/orderModel')
+const auth = require('../middleware/auth')
 
 // signup Route
 router.post('/users/signup',async(req,res)=>{
@@ -67,10 +68,10 @@ const stripe = require('stripe')(stripekey, {
   timeout: 120000,
 });
 
-router.post('/create-checkout-session', async (req, res) => {
+router.post('/create-checkout-session', auth,async (req, res) => {
   const customer=await stripe.customers.create({
     metadata:{
-      userId:req.body.userId,
+      userId:req.user._id,
       cart: JSON.stringify(req.body) 
     }
   })
@@ -137,18 +138,20 @@ router.post('/create-checkout-session', async (req, res) => {
 //Create Order
 const createOrder=async(customer,data)=>{
   const Items=JSON.parse(customer.metadata.cart);
-  console.log("Items:",Items.cartItems)
+  console.log("Items:",Items)
+  try{
   const newOrder=new Order({
-    userId:customer.metadata.userId,
+    
     customerId:data.customer,
     paymentIntentId:data.payment_intent,
     products:Items.cartItems,
     subtotal:data.amount_subtotal,
     total:data.amount_total,
     shipping:data.customer_details,
-    payment_status:data.payment_status
+    payment_status:data.payment_status,
+    owner:Items.userId,
   });
-  try{
+
     const savedOrder=await newOrder.save()
     console.log("Processed Order:",savedOrder)
   }catch(e){
@@ -157,7 +160,7 @@ const createOrder=async(customer,data)=>{
 }
 
 
- //stripe webhooks
+//stripe webhooks
 
 // This is your Stripe CLI webhook secret for testing your endpoint locally.
 let endpointSecret;
@@ -190,8 +193,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (request, res
   if (eventType === 'checkout.session.completed') {
     stripe.customers.retrieve(data.customer)
       .then(customer => {
-        console.log("Customer:", customer);
-        console.log("Data:", data);
+        //console.log("Customer:", customer);
+        //console.log("Data:", data);
         createOrder(customer,data)
       })
       .catch(err => console.log(err.message));

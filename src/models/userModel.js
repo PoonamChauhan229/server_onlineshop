@@ -42,6 +42,12 @@ userSchema.methods.generateAuthToken = async function() {
     return token;
 }
 
+userSchema.virtual('orderRel',{
+    ref:'Order',// Order Model
+    localField:'_id',//local data is stored// owner Object ID which is associted with task==> Object ID of user
+    foreignField:'owner'//name of the feild on the other Model , ie in the task that is been used for creating an relationship => user id
+})  
+
 
 
 const User=mongoose.model('User',userSchema)
