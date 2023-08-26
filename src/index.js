@@ -1,12 +1,12 @@
-import cors from 'cors'
+const products = require('./products');
+const express = require('express');
 const cors = require('cors');
-const express = require('express');s
-const app = express();
+
 const dotenv = require('dotenv');
 const connection = require('./db/connection');
-const products = require('./products');
 
 
+const app = express();
 dotenv.config();
 app.use(express.json());
 
