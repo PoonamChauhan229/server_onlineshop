@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const connection = require('./db/connection');
 const products = require('./products');
 
+
 dotenv.config();
 app.use(express.json());
 
