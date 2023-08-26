@@ -1,3 +1,5 @@
+const express = require("express");
+const app = express();
 const products = require('./products');
 const express = require('express');
 const cors = require('cors');
@@ -5,8 +7,6 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connection = require('./db/connection');
 
-
-const app = express();
 dotenv.config();
 app.use(express.json());
 
