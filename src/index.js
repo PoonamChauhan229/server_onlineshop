@@ -1,7 +1,6 @@
 const express = require("express");
 const app = express();
 const products = require('./products');
-// const express = require('express');
 const cors = require('cors');
 
 const dotenv = require('dotenv');
