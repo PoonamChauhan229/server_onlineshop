@@ -39,6 +39,7 @@ app.get('/products', (req, res) => {
     res.send(products);
 });
 
+
 app.listen(PORT, () => {
     console.log("Server started at PORT", PORT);
 });
